@@ -1,3 +1,5 @@
+/// <reference path="../node_modules/phaser/typescript/phaser.d.ts" />
+
 (function(window) {
 
   var dpr, config, sesion;
@@ -9,7 +11,7 @@
     cantidad: 8,
     tamanio: 40
   };
-
+  
   config.grados = 360 / config.cantidad;
   config.radio = (config.ancho > config.alto ? config.alto : config.ancho) / 4
 
