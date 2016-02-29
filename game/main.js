@@ -9,7 +9,15 @@
         ancho: window.innerWidth * dpr,
         alto: window.innerHeight * dpr,
         cantidad: 8,
-        tamanio: 40
+        tamanio: 40,
+        letras: 'abcdefghijklmnñopqrstuvwxyz',
+        numeros: '1234567890',
+        figuras: [
+            { nombre: 'círculo',    color: 0x8c8c8c, factory: crearCirculo    },
+            { nombre: 'rectángulo', color: 0xff0000, factory: crearRectangulo },
+            { nombre: 'óvalo',      color: 0x00ff00, factory: crearOvalo      },
+            { nombre: 'triángulo',  color: 0x0000ff, factory: crearTriangulo  }
+        ]
     };
 
     config.grados = 360 / config.cantidad;
@@ -20,23 +28,23 @@
     };
 
     var game = new Phaser.Game(config.ancho, config.alto, Phaser.CANVAS, 'game-container', {
-        create: create
+        create: crearJuego
     });
 
+    function crearJuego() {
 
-    function create() {
-
-        var x, y, centerX, centerY, graphics, i, radianes, grados, figura, colorFondo, hitArea;
+        var x, y, centerX, centerY, graphics, i, radianes, grados, figura, colorFondo, hitArea, cantidadFiguras;
 
         centerX = game.world.centerX;
         centerY = game.world.centerY;
 
         graphics = game.add.graphics();
         graphics.lineStyle(1, 0xffffff, 1);
-        graphics.beginFill(0x8c8c8c, 1)
-
-
+        graphics.beginFill(0x8c8c8c, 1);
+        
         radianes = Math.PI / 180;
+
+        cantidadFiguras = config.figuras.length;
 
         for (i = 1; i <= config.cantidad; i += 1) {
             
@@ -45,32 +53,14 @@
             x = Math.cos(grados) * config.radio + centerX;
             y = Math.sin(grados) * config.radio + centerY;
 
-            hitArea = new Phaser.Rectangle(x, y, config.tamanio, config.tamanio);
-            if (i % 4 == 0) {
-                colorFondo = 0x8c8c8c;
-                figura = new Phaser.Circle(x, y, config.tamanio);
-                hitArea.x -= config.tamanio / 2;
-                hitArea.y -= config.tamanio / 2;
-            }
-            else if (i % 4 == 1) {
-                colorFondo = 0xff0000;
-                figura = new Phaser.Rectangle(x, y, config.tamanio, config.tamanio);
-            } else if (i % 4 == 2) {
-                colorFondo = 0x00ff00;
-                figura = new Phaser.Ellipse(x, y, (config.tamanio / 1.5), (config.tamanio / 2));
-                hitArea.x -= config.tamanio / 1.5;
-                hitArea.y -= config.tamanio / 2;
-                hitArea.width = (config.tamanio / 1.5) * 2;
-            } else if (i % 4 == 3) {
-                colorFondo = 0x0000ff;
-                var top = new Phaser.Point(x + Math.ceil(config.tamanio / 2), y);
-                var left = new Phaser.Point(x, y + config.tamanio);
-                var right = new Phaser.Point(x + config.tamanio, y + config.tamanio);
-                figura = new Phaser.Polygon([top, left, right]);
-            }
-                        
-            // graphics.beginFill(0xffffff, 0.5);
-            // graphics.drawShape(hitArea);
+            var fixedIndex = i % cantidadFiguras;
+            var configuracionFigura = config.figuras[fixedIndex];
+
+            var figuraShareArea = configuracionFigura.factory(x, y, config.tamanio);
+            
+            hitArea = figuraShareArea[0];
+            figura =  figuraShareArea[1];
+            colorFondo = configuracionFigura.color;
             
             graphics.beginFill(colorFondo, 1);
             graphics.drawShape(figura);  
@@ -81,13 +71,46 @@
 
         game.input.onTap.add(onTap);
     }
+    
+    function crearCirculo(x, y, tamanio) {
+        var factor = tamanio / 2;
+        
+        var hitArea = new Phaser.Rectangle(x - factor, y - factor, tamanio, tamanio);
+        var figura = new Phaser.Circle(x , y, config.tamanio);
+        return [hitArea, figura];
+    }
+    
+    function crearRectangulo(x, y, tamanio) {
+        var figura = new Phaser.Rectangle(x, y, tamanio, tamanio);
+        return [figura, figura];
+    }
+    
+    function crearOvalo(x, y, tamanio) {
+        var ancho = tamanio / 1.5;
+        var alto = tamanio / 2;
+        var hitAreaWidth = (tamanio / 1.5) * 2;
+        
+        var hitArea = new Phaser.Rectangle(x - ancho, y - alto, hitAreaWidth, tamanio);
+        var figura = new Phaser.Ellipse(x, y, ancho, alto);
+        return [hitArea, figura];
+    }
+    
+    function crearTriangulo(x, y, tamanio) {
+        var top = new Phaser.Point(x + Math.ceil(tamanio / 2), y);
+        var left = new Phaser.Point(x, y + tamanio);
+        var right = new Phaser.Point(x + tamanio, y + tamanio);
+        
+        var hitArea = new Phaser.Rectangle(x, y, config.tamanio, config.tamanio);
+        var figura = new Phaser.Polygon([top, left, right]);
+        return [hitArea, figura];
+    }
 
     function onTap(e) {
         var i, figura;
         for (i = 0; i < sesion.figuras.length; i += 1) {
             figura = sesion.figuras[i];
             if (figura.contains(e.x, e.y)) {
-                console.log('hit');
+                console.log('hit ' + figura.toString());
                 return;
             }
         }
